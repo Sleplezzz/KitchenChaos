@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#091417" />
+    <title>Kitchen Chaos — Operación en vivo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+    <header class="site-header">
+      <a class="brand" href="#inicio" aria-label="Kitchen Chaos, inicio">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>kitchen<span>chaos</span></span>
+      </a>
+      <div class="live-pill"><span class="pulse"></span> Operación en vivo</div>
+      <nav aria-label="Navegación principal">
+        <a href="#pedir">Hacer pedido</a>
+        <a href="#tablero">Tablero</a>
+        <a href="#agentes">Agentes</a>
+      </nav>
+      <button class="host-button" id="hostNav" type="button">Acceso host <span>↗</span></button>
+    </header>
+
+    <main id="inicio">
+      <section class="hero container">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="orange-dot"></span> RESTAURANTE AUTÓNOMO / EDICIÓN HACKATHON</p>
+          <h1>La cocina está viva.<br /><em>Y piensa en público.</em></h1>
+          <p class="hero-text">Haz un pedido y sigue cada decisión operativa: del ingreso a cocina hasta su llegada. Cuando ocurre el caos, nuestros agentes se adaptan en tiempo real.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#pedir">Ordenar ahora <span>↓</span></a>
+            <a class="button button-ghost" href="#tablero">Ver la operación <span>→</span></a>
+          </div>
+        </div>
+        <aside class="hero-panel" aria-label="Estado de la cocina">
+          <div class="panel-topline"><span>ESTADO DE COCINA</span><strong id="kitchenStatus">ESTABLE</strong></div>
+          <div class="status-orbit">
+            <div class="orbit-core"><span>01</span><strong>TODO<br />EN MARCHA</strong></div>
+            <span class="orbit-label orbit-chef">CHEF<br /><b>ACTIVO</b></span>
+            <span class="orbit-label orbit-manager">GERENTE<br /><b>ACTIVO</b></span>
+            <span class="orbit-label orbit-driver">RIDER<br /><b>ACTIVO</b></span>
+          </div>
+          <div class="panel-footer"><span><i class="pulse"></i><b id="viewerCount">18</b> espectadores</span><span>actualizado <b id="lastUpdate">ahora</b></span></div>
+        </aside>
+      </section>
+
+      <section class="metric-strip container" aria-label="Métricas operativas">
+        <div class="metric"><span>EN OPERACIÓN</span><strong id="activeOrders">04</strong><small><i class="trend-up">↗</i> 2 en los últimos 5 min</small></div>
+        <div class="metric"><span>ENTREGADOS HOY</span><strong id="deliveredOrders">27</strong><small><i class="trend-up">↗</i> 93% a tiempo</small></div>
+        <div class="metric"><span>TIEMPO PROMEDIO</span><strong id="averageTime">18<span>min</span></strong><small><i class="trend-down">↓</i> 3 min vs. ayer</small></div>
+        <div class="metric metric-chaos"><span>IMPACTO CAOS</span><strong id="chaosOrders">02</strong><small><i class="orange-dot"></i> pedidos replanificados</small></div>
+      </section>
+
+      <section class="order-section container" id="pedir">
+        <div class="section-heading">
+          <p class="eyebrow">01 / PUNTO DE ENTRADA</p>
+          <h2>Inicia un pedido.</h2>
+          <p>La cocina te asignará un identificador y un canal de seguimiento al instante.</p>
+        </div>
+        <div class="order-layout">
+          <form class="order-form card" id="orderForm">
+            <div class="form-heading"><span class="step-number">01</span><div><h3>Elige tu antojo</h3><p>Menú disponible hoy</p></div></div>
+            <div class="menu-grid" id="menuGrid" role="radiogroup" aria-label="Plato">
+              <button class="menu-option selected" type="button" data-item="Smash burger" data-price="32"><span class="menu-icon">▣</span><span><b>Smash burger</b><small>Doble carne, queso</small></span><strong>S/ 32</strong></button>
+              <button class="menu-option" type="button" data-item="Ramen miso" data-price="29"><span class="menu-icon">◒</span><span><b>Ramen miso</b><small>Hongos, huevo, nori</small></span><strong>S/ 29</strong></button>
+              <button class="menu-option" type="button" data-item="Tacos al pastor" data-price="26"><span class="menu-icon">◈</span><span><b>Tacos al pastor</b><small>Trío con piña</small></span><strong>S/ 26</strong></button>
+              <button class="menu-option" type="button" data-item="Curry verde" data-price="28"><span class="menu-icon">◉</span><span><b>Curry verde</b><small>Arroz jazmín, tofu</small></span><strong>S/ 28</strong></button>
+              <button class="menu-option" type="button" data-item="Pizza picante" data-price="34"><span class="menu-icon">◇</span><span><b>Pizza picante</b><small>Chorizo, miel, albahaca</small></span><strong>S/ 34</strong></button>
+              <button class="menu-option" type="button" data-item="Bowl de salmón" data-price="36"><span class="menu-icon">◐</span><span><b>Bowl de salmón</b><small>Quinua, palta, sésamo</small></span><strong>S/ 36</strong></button>
+            </div>
+            <div class="form-split">
+              <label>¿A nombre de quién?<input id="customerName" maxlength="25" autocomplete="name" placeholder="Tu nombre" required /></label>
+              <label>Cantidad<select id="orderQty"><option value="1">1 porción</option><option value="2">2 porciones</option><option value="3">3 porciones</option></select></label>
+            </div>
+            <div class="form-bottom"><span id="orderTotal">Total estimado <b>S/ 32</b></span><button class="button button-primary" type="submit">Enviar a cocina <span>→</span></button></div>
+          </form>
+
+          <aside class="tracking-card card" id="trackerShell" aria-live="polite">
+            <div class="tracking-empty" id="trackingEmpty">
+              <div class="tracking-rings" aria-hidden="true"><span></span><span></span><span></span><b>?</b></div>
+              <p class="eyebrow">SEGUIMIENTO PERSONAL</p>
+              <h3>Tu pedido aparecerá aquí.</h3>
+              <p>Cada orden recibe un código único y avanza en el mismo flujo que ve todo el público.</p>
+            </div>
+            <div class="tracking-order hidden" id="trackingOrder">
+              <div class="tracking-header"><div><p class="eyebrow">CANAL <span id="trackingChannel">ORDER-000</span></p><h3 id="trackingName">Pedido para ti</h3></div><span class="tracking-status" id="trackingStatus">RECIBIDO</span></div>
+              <div class="route-line" aria-label="Progreso del pedido"><span class="route-node complete"></span><span class="route-fill" id="routeFill"></span><span class="route-node" data-node="cooking"></span><span class="route-node" data-node="packed"></span><span class="route-node" data-node="delivery"></span><span class="route-node" data-node="delivered"></span></div>
+              <div class="route-labels"><span>Pedido</span><span>Cocina</span><span>Empaque</span><span>Ruta</span><span>Listo</span></div>
+              <div class="tracking-detail"><div><span>PREPARA</span><b id="trackingAgent">Chef Nara</b></div><div><span>ESTIMADO</span><b id="trackingEta">18 min</b></div></div>
+              <div class="decision-note"><span class="decision-icon">✦</span><p id="trackingMessage">La orden ya entró a la cola priorizada de cocina.</p></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="board-section" id="tablero">
+        <div class="container">
+          <div class="section-heading board-heading"><div><p class="eyebrow">02 / EL FLUJO COMPLETO</p><h2>Tablero de la cocina.</h2></div><div class="board-caption"><span class="pulse"></span> Sincronizado por eventos<br /><small>último pulso: <b id="boardUpdate">ahora</b></small></div></div>
+          <div class="kanban" id="kanban" aria-live="polite">
+            <section class="kanban-column received"><header><span class="column-index">01</span><h3>Recibido</h3><b id="count-received">0</b></header><div class="order-list" data-stage="received"></div></section>
+            <section class="kanban-column cooking"><header><span class="column-index">02</span><h3>Cocinando</h3><b id="count-cooking">0</b></header><div class="order-list" data-stage="cooking"></div></section>
+            <section class="kanban-column packed"><header><span class="column-index">03</span><h3>Empacado</h3><b id="count-packed">0</b></header><div class="order-list" data-stage="packed"></div></section>
+            <section class="kanban-column delivery"><header><span class="column-index">04</span><h3>En camino</h3><b id="count-delivery">0</b></header><div class="order-list" data-stage="delivery"></div></section>
+            <section class="kanban-column delivered"><header><span class="column-index">05</span><h3>Entregado</h3><b id="count-delivered">0</b></header><div class="order-list" data-stage="delivered"></div></section>
+          </div>
+        </div>
+      </section>
+
+      <section class="agent-section container" id="agentes">
+        <div class="section-heading agent-heading"><div><p class="eyebrow">03 / CAPA DE DECISIÓN</p><h2>Agentes con criterio operativo.</h2></div><p>Mostramos el porqué de las decisiones sin exponer razonamientos internos: solo un resumen claro, útil y auditable.</p></div>
+        <div class="agent-layout">
+          <div class="agent-roster" id="agentRoster">
+            <article class="agent-card active" data-agent="chef"><div class="agent-avatar chef">N</div><div><span>AGENTE CHEF</span><h3>Nara</h3><p>Prioriza y prepara</p></div><b><i></i> ON</b></article>
+            <article class="agent-card active" data-agent="manager"><div class="agent-avatar manager">M</div><div><span>AGENTE GERENTE</span><h3>Mateo</h3><p>Balancea la carga</p></div><b><i></i> ON</b></article>
+            <article class="agent-card active" data-agent="driver"><div class="agent-avatar driver">L</div><div><span>AGENTE REPARTIDOR</span><h3>Luna</h3><p>Optimiza las rutas</p></div><b><i></i> ON</b></article>
+            <article class="agent-card active" data-agent="monitor"><div class="agent-avatar monitor">O</div><div><span>AGENTE MONITOR</span><h3>Ojo</h3><p>Cuida la continuidad</p></div><b><i></i> ON</b></article>
+          </div>
+          <div class="decision-feed card">
+            <div class="feed-header"><div><span class="eyebrow">ACTIVIDAD EN VIVO</span><h3>Bitácora de decisiones</h3></div><span class="feed-time"><i class="pulse"></i> LIVE</span></div>
+            <ol id="decisionFeed" class="feed-list"></ol>
+          </div>
+          <aside class="chaos-card" id="chaos">
+            <div class="chaos-head"><span class="warning-icon">!</span><div><p class="eyebrow">PANEL HOST</p><h3>Provocar caos</h3></div></div>
+            <p>Introduce una disrupción y observa cómo se replanifica la operación.</p>
+            <button class="chaos-action" id="ingredientChaos" type="button"><span>◒</span><div><b>Escasez de ingredientes</b><small>Reduce inventario crítico</small></div><i>→</i></button>
+            <button class="chaos-action" id="demandChaos" type="button"><span>↯</span><div><b>Pico de demanda</b><small>Inyecta 3 pedidos urgentes</small></div><i>→</i></button>
+            <div class="chaos-foot"><span class="pulse"></span><b id="chaosState">Todo bajo control</b></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer container"><span class="brand">kitchen<span>chaos</span></span><p>Demo autónoma para hackathon · Modo simulación local</p><span>v1.0 / <b id="footerClock">--:--:--</b></span></footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
