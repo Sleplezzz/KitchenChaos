@@ -1,3 +1,4 @@
+import type { Message } from "@portalsdk/core";
 import { describe, expect, it } from "vitest";
 import { kitchenEventSchema } from "../domain/events";
 import {
@@ -29,7 +30,7 @@ describe("toRoomId", () => {
   });
 
   it("accepts four letters or digits after normalization", () => {
-    expect(toRoomId("Ab-1!")).toBe("kitchen-ab1");
+    expect(toRoomId("Ab-12!")).toBe("kitchen-ab12");
     expect(toRoomId("wxyz")).toBe("kitchen-wxyz");
   });
 
@@ -151,5 +152,106 @@ describe("projection adapter", () => {
     const fromAscending = projectKitchen(ROOM_ID, ascending);
 
     expect(fromAdapter).toEqual(fromAscending);
+  });
+
+  it("projects real Portal Message objects that have no public seq", () => {
+    const created = buildDomainOrderCreated({
+      roomId: ROOM_ID,
+      orderId: ORDER_ID,
+    });
+    const assigned = buildOrderAssigned({
+      roomId: ROOM_ID,
+      orderId: ORDER_ID,
+      causedBy: "msg_created",
+    });
+
+    const sdkMessages: Message[] = [
+      {
+        id: "msg_created",
+        channelId: ROOM_ID,
+        sender: { id: "cust-1", anon: true },
+        timestamp: 1_700_000_000_000,
+        retracted: false,
+        ephemeral: false,
+        kind: "text",
+        type: "order.created",
+        content: created,
+        unread: false,
+        status: "sent",
+      },
+      {
+        id: "msg_assigned",
+        channelId: ROOM_ID,
+        sender: { id: "agent-1", anon: false },
+        timestamp: 1_700_000_000_100,
+        retracted: false,
+        ephemeral: false,
+        kind: "text",
+        type: "order.assigned",
+        content: assigned,
+        unread: false,
+        status: "sent",
+      },
+    ];
+
+    const projection = projectPortalMessages(ROOM_ID, sdkMessages);
+
+    expect(projection.orders[ORDER_ID]?.stage).toBe("cooking");
+    expect(projection.orders[ORDER_ID]?.station).toBe("principal");
+  });
+
+  it("projects only sent SDK messages and ignores ephemeral, pending, and failed rows", () => {
+    const baseEnvelope = {
+      channelId: ROOM_ID,
+      sender: { id: "cust-1", anon: true as const },
+      timestamp: 1_700_000_000_000,
+      retracted: false,
+      kind: "text" as const,
+      type: "order.created",
+      unread: false,
+    };
+
+    const orderFor = (orderId: string) =>
+      buildDomainOrderCreated({ roomId: ROOM_ID, orderId });
+
+    const ephemeral: Message = {
+      ...baseEnvelope,
+      id: "msg_ephemeral",
+      ephemeral: true,
+      content: orderFor("550e8400-e29b-41d4-a716-446655440010"),
+      status: "sent",
+    };
+    const pending: Message = {
+      ...baseEnvelope,
+      id: "msg_pending",
+      ephemeral: false,
+      content: orderFor("550e8400-e29b-41d4-a716-446655440011"),
+      status: "pending",
+    };
+    const failed: Message = {
+      ...baseEnvelope,
+      id: "msg_failed",
+      ephemeral: false,
+      content: orderFor("550e8400-e29b-41d4-a716-446655440012"),
+      status: "failed",
+    };
+    const sent: Message = {
+      ...baseEnvelope,
+      id: "msg_sent",
+      ephemeral: false,
+      content: orderFor(ORDER_ID),
+      status: "sent",
+    };
+
+    const projection = projectPortalMessages(ROOM_ID, [
+      ephemeral,
+      pending,
+      failed,
+      sent,
+    ]);
+
+    expect(Object.keys(projection.orders)).toEqual([ORDER_ID]);
+    expect(projection.orders[ORDER_ID]?.stage).toBe("received");
+    expect(projection.appliedMessageIds).toEqual({ msg_sent: true });
   });
 });
