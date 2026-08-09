@@ -1,4 +1,5 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import stylesHref from "../styles.css?url";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -7,6 +8,7 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Kitchen Chaos" },
     ],
+    links: [{ rel: "stylesheet", href: stylesHref }],
   }),
   component: RootComponent,
 });
