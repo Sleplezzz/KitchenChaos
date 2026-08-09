@@ -29,6 +29,11 @@ const ORDER_C = "550e8400-e29b-41d4-a716-446655440003";
 const COORDINATOR_FALLBACK_THOUGHT =
   "Assigned with available station and default priority.";
 
+const BACKUP_FALLBACK_THOUGHT =
+  "Principal failed; reassigned affected orders to reserve.";
+
+const DELIVERY_FALLBACK_THOUGHT = "Order ready; confirming delivery.";
+
 function seedOrder(
   partial: Partial<Order> & { id: string },
 ): Order {
@@ -361,6 +366,166 @@ describe("planAgentEvents", () => {
       expect(events.some((e) => e.payload.orderId === ORDER_C)).toBe(false);
       assertValidAgentEvents(events);
     });
+
+    it("makes one model call for a multi-order Backup trigger", async () => {
+      // Break: planner calls the model once per reassigned order.
+      const content = buildStationFailed({
+        affectedOrderIds: [ORDER_A, ORDER_B],
+      }) as HumanKitchenEvent;
+      const trigger = makeTrigger(content, "msg_backup_one_call");
+      const projection = makeProjection({
+        orders: [
+          seedOrder({
+            id: ORDER_A,
+            stage: "cooking" as OrderStage,
+            station: "principal",
+            createdSeq: 1,
+          }),
+          seedOrder({
+            id: ORDER_B,
+            stage: "cooking" as OrderStage,
+            station: "principal",
+            createdSeq: 2,
+          }),
+        ],
+        stations: { principal: "failed", reserve: "ok" },
+      });
+      const model = fakeModel({ thought: "Moving principal work to reserve." });
+
+      const events = await callPlanner({
+        trigger,
+        event: content,
+        projection,
+        model,
+      });
+
+      expect(events).toHaveLength(2);
+      expect(model.generate).toHaveBeenCalledTimes(1);
+      expect(events.every((e) => e.thought === "Moving principal work to reserve.")).toBe(
+        true,
+      );
+      assertValidAgentEvents(events);
+    });
+
+    it("returns no events and skips the model when all Backup actionKeys are applied", async () => {
+      // Break: fully applied Backup retry still pays for a model call.
+      const content = buildStationFailed({
+        affectedOrderIds: [ORDER_A, ORDER_B],
+      }) as HumanKitchenEvent;
+      const triggerId = "msg_backup_idem";
+      const trigger = makeTrigger(content, triggerId);
+      const keyA = buildActionKey({
+        triggerId,
+        agentRole: "backup",
+        actionType: "order.reassigned",
+        orderId: ORDER_A,
+      });
+      const keyB = buildActionKey({
+        triggerId,
+        agentRole: "backup",
+        actionType: "order.reassigned",
+        orderId: ORDER_B,
+      });
+      const projection = makeProjection({
+        orders: [
+          seedOrder({
+            id: ORDER_A,
+            stage: "cooking" as OrderStage,
+            station: "principal",
+            createdSeq: 1,
+          }),
+          seedOrder({
+            id: ORDER_B,
+            stage: "cooking" as OrderStage,
+            station: "principal",
+            createdSeq: 2,
+          }),
+        ],
+        stations: { principal: "failed", reserve: "ok" },
+        appliedActionKeys: { [keyA]: true, [keyB]: true },
+      });
+      const model = fakeModel({ thought: "should not be used" });
+
+      const events = await callPlanner({
+        trigger,
+        event: content,
+        projection,
+        model,
+      });
+
+      expect(events).toEqual([]);
+      expect(model.generate).not.toHaveBeenCalled();
+    });
+
+    it("uses the shared thought fallback when the Backup model throws", async () => {
+      // Break: Backup does not share resolveThoughtDecision throw fallback.
+      const content = buildStationFailed({
+        affectedOrderIds: [ORDER_A],
+      }) as HumanKitchenEvent;
+      const trigger = makeTrigger(content, "msg_backup_throw");
+      const projection = makeProjection({
+        orders: [
+          seedOrder({
+            id: ORDER_A,
+            stage: "cooking" as OrderStage,
+            station: "principal",
+            createdSeq: 1,
+          }),
+        ],
+        stations: { principal: "failed", reserve: "ok" },
+      });
+      const model = fakeModel(new Error("timeout"));
+
+      const events = await callPlanner({
+        trigger,
+        event: content,
+        projection,
+        model,
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: "order.reassigned",
+        thought: BACKUP_FALLBACK_THOUGHT,
+        payload: { orderId: ORDER_A, station: "reserve", priorityScore: 3 },
+      });
+      expect(model.generate).toHaveBeenCalledTimes(1);
+      assertValidAgentEvents(events);
+    });
+
+    it("uses the shared thought fallback when Backup model output is invalid", async () => {
+      // Break: invalid thought payload is accepted or error escapes Backup.
+      const content = buildStationFailed({
+        affectedOrderIds: [ORDER_A],
+      }) as HumanKitchenEvent;
+      const trigger = makeTrigger(content, "msg_backup_invalid");
+      const projection = makeProjection({
+        orders: [
+          seedOrder({
+            id: ORDER_A,
+            stage: "cooking" as OrderStage,
+            station: "principal",
+            createdSeq: 1,
+          }),
+        ],
+        stations: { principal: "failed", reserve: "ok" },
+      });
+      const model: ModelClient = {
+        generate: vi.fn().mockResolvedValue({ thought: "" }),
+      };
+
+      const events = await callPlanner({
+        trigger,
+        event: content,
+        projection,
+        model,
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]!.thought).toBe(BACKUP_FALLBACK_THOUGHT);
+      expect(model.generate).toHaveBeenCalledTimes(1);
+      assertValidAgentEvents(events);
+    });
   });
 
   describe("Delivery", () => {
@@ -401,6 +566,68 @@ describe("planAgentEvents", () => {
       });
       expect(events[0]!.thought.length).toBeGreaterThanOrEqual(1);
       expect(events[0]!.thought.length).toBeLessThanOrEqual(120);
+      assertValidAgentEvents(events);
+    });
+
+    it("uses the shared thought fallback when the Delivery model throws", async () => {
+      // Break: Delivery does not share resolveThoughtDecision throw fallback.
+      const content = buildOrderReady({ orderId: ORDER_A }) as HumanKitchenEvent;
+      const trigger = makeTrigger(content, "msg_delivery_throw");
+      const projection = makeProjection({
+        orders: [
+          seedOrder({
+            id: ORDER_A,
+            stage: "ready",
+            station: "principal",
+          }),
+        ],
+      });
+      const model = fakeModel(new Error("timeout"));
+
+      const events = await callPlanner({
+        trigger,
+        event: content,
+        projection,
+        model,
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: "order.delivered",
+        thought: DELIVERY_FALLBACK_THOUGHT,
+        payload: { orderId: ORDER_A },
+      });
+      expect(model.generate).toHaveBeenCalledTimes(1);
+      assertValidAgentEvents(events);
+    });
+
+    it("uses the shared thought fallback when Delivery model output is invalid", async () => {
+      // Break: invalid thought payload is accepted or error escapes Delivery.
+      const content = buildOrderReady({ orderId: ORDER_A }) as HumanKitchenEvent;
+      const trigger = makeTrigger(content, "msg_delivery_invalid");
+      const projection = makeProjection({
+        orders: [
+          seedOrder({
+            id: ORDER_A,
+            stage: "ready",
+            station: "principal",
+          }),
+        ],
+      });
+      const model: ModelClient = {
+        generate: vi.fn().mockResolvedValue({ thought: "" }),
+      };
+
+      const events = await callPlanner({
+        trigger,
+        event: content,
+        projection,
+        model,
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]!.thought).toBe(DELIVERY_FALLBACK_THOUGHT);
+      expect(model.generate).toHaveBeenCalledTimes(1);
       assertValidAgentEvents(events);
     });
 
