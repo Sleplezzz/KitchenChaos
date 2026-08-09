@@ -9,6 +9,7 @@
     "assets/**",
     "agent/tmp/**",
     "agent/docs/**",
-    "docs/**"
+    "docs/**",
+    ".agents/**"
   ]
 }
