@@ -569,6 +569,35 @@ describe("planAgentEvents", () => {
       assertValidAgentEvents(events);
     });
 
+    it("emits one order.delivered using a successful model thought", async () => {
+      // Break: Delivery ignores a valid model thought or skips generate.
+      const content = buildOrderReady({ orderId: ORDER_A }) as HumanKitchenEvent;
+      const trigger = makeTrigger(content, "msg_delivery_model");
+      const projection = makeProjection({
+        orders: [
+          seedOrder({ id: ORDER_A, stage: "ready", station: "principal" }),
+        ],
+      });
+      const model = fakeModel({ thought: "Runner taking tray to table." });
+
+      const events = await callPlanner({
+        trigger,
+        event: content,
+        projection,
+        model,
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: "order.delivered",
+        agentRole: "delivery",
+        thought: "Runner taking tray to table.",
+        payload: { orderId: ORDER_A },
+      });
+      expect(model.generate).toHaveBeenCalledTimes(1);
+      assertValidAgentEvents(events);
+    });
+
     it("uses the shared thought fallback when the Delivery model throws", async () => {
       // Break: Delivery does not share resolveThoughtDecision throw fallback.
       const content = buildOrderReady({ orderId: ORDER_A }) as HumanKitchenEvent;
