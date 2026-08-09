@@ -4,7 +4,7 @@
 
 **Goal:** Build a testable realtime kitchen where three human roles and three AI agents share one Portal event stream.
 
-**Architecture:** A Vite React client joins one anonymous Portal channel per room. A stateless Hono webhook rebuilds the room from Portal history, runs one bounded agent decision, and publishes a new Portal event. The client and server use the same pure reducer.
+**Architecture:** A TanStack Start SPA joins one anonymous Portal channel per room. A stateless Hono webhook rebuilds the room from Portal history, runs one bounded agent decision, and publishes a new Portal event. The client and server use the same pure reducer.
 
 **Tech Stack:** Node.js 24 LTS, pnpm, TypeScript, React, Vite 8.1, Hono, Portal SDK, AI SDK Core, AI Gateway, Zod, Vitest, and Vercel Functions.
 
