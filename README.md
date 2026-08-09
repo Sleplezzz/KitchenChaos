@@ -18,23 +18,25 @@ No hay bases de datos externas, memorias a largo plazo, ni temporizadores locale
 
 ---
 
-## 🏗️ Arquitectura Modular
+## 🏗️ Estructura y Arquitectura del Proyecto
 
-El proyecto ha sido organizado en una arquitectura desacoplada y modular:
+El proyecto está diseñado bajo una arquitectura desacoplada en TypeScript, alojada en un único despliegue de Vercel:
 
-### 1. Frontend (`src/`) — React + Vite
-- **`src/components/`**: Componentes de interfaz aislados y reutilizables (`Header`, `AdminDrawer`, `MetricsBar`, `OrderForm`, `KanbanBoard`, `AgentPanel`, `FeedPanel`, `TicketCard`, `MetricCard`).
-- **`src/hooks/`**: Hook personalizado `useKitchenChaos` para la gestión centralizada del estado, simulación de pedidos y eventos de caos.
-- **`src/services/`**: Cliente API (`api.js`) para la comunicación con el servidor backend proxy.
-- **`src/constants/`**: Configuración global (`kitchen.js`) del menú, estados de la cocina y líneas de respaldo.
-- **`src/utils/`**: Funciones auxiliares (`helpers.js`) para generación de identificadores, nombres de platos y utilidades.
-- **`src/index.css`**: Sistema de diseño visual con tokens CSS, tipografías y animaciones.
+### 1. Dominio Compartido (`src/domain/` o `src/lib/`)
+- **`reducer.ts`**: Reducer puro de TypeScript que proyecta el estado de la cocina a partir del stream de eventos de Portal. Es consumido tanto por el cliente (React) como por el backend (Hono) para garantizar una única fuente de verdad.
+- **`events.ts`**: Definición de contratos de eventos de dominio (`order.created`, `station.failed`, `order.ready`, `order.assigned`, etc.) validados mediante Zod.
 
-### 2. Backend (`server/`) — Express API Proxy
-- **`server/index.js`**: Punto de entrada del servidor Express.
-- **`server/routes/`**: Rutas de la API (`/api/agent-thought`, `/api/health`).
-- **`server/services/`**: Servicio de integración con la API de Anthropic (`anthropicService.js`) con manejo de fallbacks.
-- **`server/config.js`**: Gestión centralizada de variables de entorno.
+### 2. Frontend (`src/`) — React + Vite + TypeScript
+- **`components/`**: Vistas adaptadas a los 3 roles de usuario:
+  - **Customer:** Formulario de pedidos y estado en vivo.
+  - **Cook:** Cola de preparación agrupada por estaciones (Principal / Reserva) ordenada por prioridad.
+  - **Manager:** Tablero Kanban global y control del evento de caos (`station.failed`).
+- **`hooks/useKitchenRoom.ts`**: Hook reactivo basado en `useChannel` de `@portalsdk/react` para sincronizar eventos, historial y presencia en tiempo real.
+
+### 3. Backend (`api/` o `server/`) — Hono en Vercel Function
+- **`index.ts`**: Punto de entrada de la función serverless en Hono.
+- **`routes/webhook.ts`**: Endpoint (`POST /api/portal/webhook`) que valida firmas criptográficas de Portal, reconstruye la proyección con el reducer compartido, ejecuta los agentes y publica las decisiones.
+- **`agents/`**: Lógica de agentes (`coordinator.ts`, `backup.ts`, `delivery.ts`) gobernada por Vercel AI SDK Core y AI Gateway, con esquemas estructurados estrictos y fallbacks deterministas.
 
 ---
 
@@ -49,61 +51,56 @@ El proyecto ha sido organizado en una arquitectura desacoplada y modular:
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone https://github.com/DanielLazaro1555/Kitchen-Chaos.git
-   cd Kitchen-Chaos
+   git clone https://github.com/Sleplezzz/KitchenChaos
+   cd KitchenChaos
    ```
 
 2. **Instalar dependencias:**
    ```bash
-   npm install
+   pnpm install
    ```
 
-3. **Configurar la key de Portal (obligatoria para el tiempo real):**
-   Copia `.env.example` a `.env` en la raíz y agrega tu key publicable de Portal:
-   ```env
-   VITE_PORTAL_API_KEY=pk_tu_key_publicable_aqui
-   ```
-   *Sin esta key, cada pestaña queda aislada: no habrá sincronización entre dispositivos.*
+3. **Configurar variables de entorno**
 
-4. **(Opcional) Configurar API Key de Anthropic:**
-   Agrega también al `.env` (o a uno separado dentro de `server/`, según cómo despliegues) lo siguiente para habilitar los pensamientos generados en tiempo real por la IA:
-   ```env
-   PORT=3001
-   ANTHROPIC_API_KEY=tu_api_key_aqui
-   ```
-   *Nota: Si no se proporciona una API Key, el sistema utilizará respuestas predeterminadas de respaldo sin interrumpir el flujo del juego.*
+# Frontend
+VITE_PORTAL_PUBLISHABLE_KEY=pk_tu_key_publicable
+
+# Backend (Hono)
+PORTAL_SECRET=sk_tu_secret_key
+PORTAL_WEBHOOK_SECRET=tu_webhook_secret
+AI_GATEWAY_API_KEY=tu_api_key_de_gateway
+AI_MODEL=identificador_del_modelo_rapido
 
 ---
 
 ## 🛠️ Comandos de Ejecución
 
-### Modo Desarrollo (Local)
+# Iniciar el entorno de desarrollo
+pnpm dev
 
-1. **Iniciar el servidor Backend:**
-   ```bash
-   npm run server
-   ```
-   *El backend estará disponible en: `http://localhost:3001`*
+# Validar tipos TypeScript
+pnpm typecheck
 
-2. **Iniciar la aplicación Frontend (Vite):**
-   ```bash
-   npm run dev
-   ```
-   *El frontend estará disponible en: `http://localhost:3000`*
+# Ejecutar tests unitarios y de reducer
+pnpm test
 
-### Compilación para Producción
+# Ejecutar tests en modo watch
+pnpm test:watch
 
-```bash
-npm run build
-```
+# Compilar para producción
+pnpm build
 
----
+## ⚡ Funcionalidades (Roles y Agentes)
 
-## ⚡ Funcionalidades y Eventos de Caos
+### Roles Humanos
+- **Customer (Cliente):** Crea los pedidos.
+- **Cook (Cocinero):** Selecciona pedidos activos y los marca como listos.
+- **Manager (Gerente):** Desencadena el evento de caos (fallo de la estación principal).
 
-- **Tablero Kanban Operativo:** Visualiza en tiempo real los pedidos según su etapa (`Recibido`, `Cocinando`, `Empacado`, `En camino`, `Entregado`).
-- **Agentes Autónomos:** Cada etapa es procesada por un agente especializado que razona sobre la situación actual.
-- **Panel del Host (Simulador de Caos):**
-  - **🔥 Falta de ingrediente:** Interrumpe la cocina e impacta los pedidos activos.
-  - **📈 Pico de pedidos:** Genera una ráfaga masiva de comandas repentinas.
-  - **⚠ Fallo de Agente:** Simula la caída de un agente principal, activando automáticamente el protocolo del **Agente de Respaldo**.
+### Agentes de IA
+- **Coordinator:** Asigna estación y prioridad a un nuevo pedido.
+- **Backup:** Reasigna pedidos a la estación de reserva si ocurre un fallo.
+- **Delivery:** Marca los pedidos listos como entregados.
+
+### Evento de Caos (MVP)
+- **Fallo de Estación (`station.failed`):** El gerente inhabilita la estación principal, obligando al agente de respaldo (Backup) a intervenir y reasignar el flujo de trabajo en tiempo real. No se admiten otros eventos de caos en esta versión MVP.
