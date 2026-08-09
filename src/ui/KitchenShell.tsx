@@ -1,5 +1,9 @@
+import type { ReactNode } from "react";
 import type { HumanRole } from "../domain/projection";
 import { useKitchenRoom } from "../portal/useKitchenRoom";
+import { CookView } from "./CookView";
+import { CustomerView } from "./CustomerView";
+import { ManagerView } from "./ManagerView";
 import { PresenceBar } from "./PresenceBar";
 
 export type KitchenShellProps = {
@@ -9,18 +13,56 @@ export type KitchenShellProps = {
 };
 
 /**
- * Room shell: mounts useKitchenRoom once, renders shared header, role body placeholder.
+ * Room shell: mounts useKitchenRoom once, renders shared header and role body.
  */
 export function KitchenShell({
   roomId,
   displayName,
   role,
 }: KitchenShellProps) {
-  const { projection, presence, me, status } = useKitchenRoom({
+  const {
+    projection,
+    presence,
+    me,
+    status,
+    sendOrder,
+    markOrderReady,
+    failPrincipal,
+  } = useKitchenRoom({
     roomId,
     displayName,
     role,
   });
+
+  let roleBody: ReactNode;
+  if (role === "customer") {
+    roleBody = (
+      <CustomerView
+        projection={projection}
+        meId={me?.id}
+        status={status}
+        sendOrder={sendOrder}
+      />
+    );
+  } else if (role === "cook") {
+    roleBody = (
+      <CookView
+        projection={projection}
+        meId={me?.id}
+        status={status}
+        markOrderReady={markOrderReady}
+      />
+    );
+  } else {
+    roleBody = (
+      <ManagerView
+        projection={projection}
+        meId={me?.id}
+        status={status}
+        failPrincipal={failPrincipal}
+      />
+    );
+  }
 
   return (
     <div className="kitchen-shell">
@@ -31,11 +73,7 @@ export function KitchenShell({
         agents={projection.agents}
         meId={me?.id}
       />
-      <main className="kitchen-role-body">
-        <p className="kitchen-role-placeholder">
-          {role} view — coming next
-        </p>
-      </main>
+      <main className="kitchen-role-body">{roleBody}</main>
     </div>
   );
 }

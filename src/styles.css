@@ -287,13 +287,316 @@ input {
 
 .kitchen-role-body {
   flex: 1;
-  padding: 24px 16px;
+  padding: 16px;
+  min-width: 0;
 }
 
-.kitchen-role-placeholder {
+/* Role views: forms, queues, board, tickets, priority badge */
+
+.role-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1100px;
+}
+
+.role-view-title {
   margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ticket);
+}
+
+.role-section-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--ink-dim);
+  font-weight: 500;
+}
+
+.role-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.menu-list,
+.ticket-list,
+.station-status-list,
+.ticket-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.menu-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+
+.menu-row-name {
   font-size: 13px;
+  color: var(--ink);
+}
+
+.qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qty-button {
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--ink);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.qty-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.qty-value {
+  min-width: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  color: var(--ticket);
+}
+
+.role-action {
+  appearance: none;
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--service);
+  color: #0d1615;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.role-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.role-action-ready {
+  width: 100%;
+  margin-top: 8px;
+  background: var(--brass);
+  color: #1a1406;
+}
+
+.role-action-chaos {
+  background: var(--alert);
+  color: #fff8f6;
+}
+
+.role-error {
+  margin: 0;
+  font-size: 11px;
+  color: var(--alert);
+}
+
+.role-disabled-reason {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+.role-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+
+.ticket-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ticket {
+  padding: 12px;
+  background: var(--ticket);
+  color: #1a1610;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.ticket-suggested {
+  box-shadow: inset 3px 0 0 var(--flame);
+}
+
+.ticket-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.ticket-id {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.ticket-stage,
+.ticket-station,
+.ticket-suggest {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #4a4538;
+}
+
+.ticket-suggest {
+  color: var(--flame);
+  font-weight: 600;
+}
+
+.ticket-customer {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ticket-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.priority-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #1a1610;
+  color: var(--ticket);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.cook-stations {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.station-group {
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.station-status-panel {
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.station-status-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin-bottom: 12px;
+}
+
+.station-status-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+}
+
+.station-status-name {
+  text-transform: capitalize;
+  color: var(--ink-dim);
+}
+
+.station-status-value {
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--service);
+}
+
+.station-status-value[data-status="failed"] {
+  color: var(--alert);
+}
+
+.chaos-control {
+  max-width: 320px;
+}
+
+.manager-board {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.board-column {
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.board-count {
+  color: var(--ink-dim);
+  font-weight: 400;
+}
+
+@media (min-width: 640px) {
+  .cook-stations {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .manager-board {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 960px) {
+  .manager-board {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .room-invalid {
