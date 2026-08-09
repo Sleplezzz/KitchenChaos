@@ -13,7 +13,7 @@ const DEFAULT_AGENTS = {
   chef: { status: "ok", thought: "Listo para tomar pedidos." },
   gerente: { status: "ok", thought: "Vigilando la cola." },
   repartidor: { status: "ok", thought: "En espera en la base." },
-  respaldo: { status: "idle", thought: "" },
+  monitor: { status: "ok", thought: "Cuida la continuidad." },
 };
 
 export function reduceKitchenMessages(messages) {
@@ -22,7 +22,7 @@ export function reduceKitchenMessages(messages) {
     chef: { ...DEFAULT_AGENTS.chef },
     gerente: { ...DEFAULT_AGENTS.gerente },
     repartidor: { ...DEFAULT_AGENTS.repartidor },
-    respaldo: { ...DEFAULT_AGENTS.respaldo },
+    monitor: { ...DEFAULT_AGENTS.monitor },
   };
   const chaosLog = [];
 
@@ -72,7 +72,7 @@ export function reduceKitchenMessages(messages) {
         break;
       }
       case "chaos_log": {
-        chaosLog.push({ id: m.id, text: c.text, ts: m.timestamp ?? Date.now() });
+        chaosLog.push({ id: m.id, text: c.text, who: c.who || null, ts: m.timestamp ?? Date.now() });
         break;
       }
       default:
@@ -83,5 +83,5 @@ export function reduceKitchenMessages(messages) {
   const ordersArr = Object.values(orders).sort((a, b) => b.createdAt - a.createdAt);
   chaosLog.reverse();
 
-  return { orders: ordersArr, agents, chaosLog: chaosLog.slice(0, 6) };
+  return { orders: ordersArr, agents, chaosLog: chaosLog.slice(0, 20) };
 }

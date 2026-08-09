@@ -1,63 +1,72 @@
-import React from "react";
+import React, { useState } from "react";
 import { MENU } from "../constants/kitchen.js";
+import { itemsTotal } from "../utils/helpers.js";
 
 export default function OrderForm({ selected, toggleItem, submitOrder }) {
+  const [name, setName] = useState("");
+  const [qty, setQty] = useState(1);
+  const total = itemsTotal(selected, qty);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    submitOrder(name);
+  };
+
   return (
-    <div style={{ background: "var(--surface)", borderRadius: 8, padding: 14, marginBottom: 18 }}>
-      <div
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: 14,
-          letterSpacing: 0.5,
-          marginBottom: 10,
-          fontWeight: 600,
-        }}
-      >
-        HACER UN PEDIDO
+    <form className="order-form card" onSubmit={handleSubmit}>
+      <div className="form-heading">
+        <span className="step-number">01</span>
+        <div>
+          <h3>Elige tu antojo</h3>
+          <p>Menú disponible hoy</p>
+        </div>
       </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-        {MENU.map((m) => {
-          const isSelected = selected.includes(m.id);
-          return (
-            <button
-              key={m.id}
-              onClick={() => toggleItem(m.id)}
-              style={{
-                background: isSelected ? "var(--flame)" : "var(--surface-2)",
-                color: isSelected ? "#1a1a1a" : "var(--ink)",
-                border: "none",
-                borderRadius: 6,
-                padding: "8px 10px",
-                fontSize: 12,
-                cursor: "pointer",
-                fontFamily: "var(--font-mono)",
-                fontWeight: isSelected ? 700 : 400,
-                transition: "all 0.15s ease",
-              }}
-            >
-              {m.emoji} {m.name}
-            </button>
-          );
-        })}
+      <div className="menu-grid" role="group" aria-label="Plato">
+        {MENU.map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            className={`menu-option${selected.includes(m.id) ? " selected" : ""}`}
+            onClick={() => toggleItem(m.id)}
+          >
+            <span className="menu-icon">{m.icon}</span>
+            <span>
+              <b>{m.name}</b>
+              <small>{m.detail}</small>
+            </span>
+            <strong>S/ {m.price}</strong>
+          </button>
+        ))}
       </div>
-      <button
-        onClick={submitOrder}
-        disabled={!selected.length}
-        style={{
-          background: selected.length ? "var(--service)" : "var(--surface-2)",
-          color: selected.length ? "#0e1a17" : "var(--ink-dim)",
-          border: "none",
-          borderRadius: 6,
-          padding: "9px 16px",
-          fontWeight: 700,
-          fontSize: 12,
-          cursor: selected.length ? "pointer" : "not-allowed",
-          fontFamily: "var(--font-mono)",
-          transition: "all 0.15s ease",
-        }}
-      >
-        Enviar pedido →
-      </button>
-    </div>
+      <div className="form-split">
+        <label>
+          ¿A nombre de quién?
+          <input
+            maxLength={25}
+            autoComplete="name"
+            placeholder="Tu nombre"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
+        <label>
+          Cantidad
+          <select value={qty} onChange={(e) => setQty(Number(e.target.value))}>
+            <option value={1}>1 porción</option>
+            <option value={2}>2 porciones</option>
+            <option value={3}>3 porciones</option>
+          </select>
+        </label>
+      </div>
+      <div className="form-bottom">
+        <span>
+          Total estimado <b>S/ {total}</b>
+        </span>
+        <button className="button button-primary" type="submit" disabled={!selected.length}>
+          Enviar a cocina <span>→</span>
+        </button>
+      </div>
+    </form>
   );
 }

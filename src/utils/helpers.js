@@ -23,16 +23,10 @@ export function itemNames(ids) {
     .join(" + ");
 }
 
-export function chaosBtnStyle(color) {
-  return {
-    background: "transparent",
-    border: `1px solid ${color}`,
-    color,
-    borderRadius: 6,
-    padding: "8px 12px",
-    fontSize: 12,
-    cursor: "pointer",
-    fontFamily: "var(--font-mono)",
-    transition: "all 0.2s ease",
-  };
+export function itemsTotal(ids, qty = 1) {
+  return ids.reduce((sum, id) => sum + (MENU.find((m) => m.id === id)?.price || 0), 0) * qty;
+}
+
+export function formatClock(ts) {
+  return new Date(ts).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }

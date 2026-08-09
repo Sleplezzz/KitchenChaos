@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useChannel } from "@portalsdk/react";
-import { STAGES, FALLBACK_LINES, AGENT_META } from "../constants/kitchen.js";
+import { STAGES } from "../constants/kitchen.js";
 import { uid, randomOrderItems, itemNames, getNextSerial } from "../utils/helpers.js";
 import { getAgentThought } from "../services/api.js";
 import { KITCHEN_CHANNEL_ID } from "../lib/portal.js";
@@ -54,7 +54,7 @@ export function useKitchenChaos() {
       : 1;
 
   const pushChaosLog = useCallback(
-    (text) => send({ content: { kind: "chaos_log", text } }),
+    (text, who) => send({ content: { kind: "chaos_log", text, who } }),
     [send]
   );
 
@@ -64,12 +64,13 @@ export function useKitchenChaos() {
   );
 
   const addOrder = useCallback(
-    (items, isBackground) => {
+    (items, isBackground, customerName) => {
       const serial = getNextSerial();
       const order = {
         id: uid(),
         short: String(serial).padStart(3, "0"),
         items,
+        customerName: customerName || "",
         createdAt: Date.now(),
         tilt: (Math.random() * 3 - 1.5).toFixed(1),
         background: !!isBackground,
@@ -97,22 +98,16 @@ export function useKitchenChaos() {
         return;
       }
 
-      let role = nextStage.agent;
-      if (role && agentsRef.current[role]?.status === "down") {
-        role = "respaldo";
-      }
+      const role = nextStage.agent;
 
       let thought = "";
       if (role) {
-        if (role === "respaldo") {
-          thought = FALLBACK_LINES.respaldo[Math.floor(Math.random() * FALLBACK_LINES.respaldo.length)];
-        } else {
-          thought = await getAgentThought(
-            role,
-            `El pedido #${ord.short} (${itemNames(ord.items)}) pasa a la etapa "${nextStage.label}".`
-          );
-        }
-        await setAgentStatus(role, thought, role === "respaldo" ? "active" : "ok");
+        thought = await getAgentThought(
+          role,
+          `El pedido #${ord.short} (${itemNames(ord.items)}) pasa a la etapa "${nextStage.label}".`
+        );
+        await setAgentStatus(role, thought, "ok");
+        await pushChaosLog(thought, role);
       }
 
       await send({
@@ -128,7 +123,7 @@ export function useKitchenChaos() {
 
       busyRef.current.delete(orderId);
     },
-    [send, setAgentStatus]
+    [send, setAgentStatus, pushChaosLog]
   );
 
   // --- loop principal: solo corre en la pestaña líder ---
@@ -154,11 +149,12 @@ export function useKitchenChaos() {
   }, [isLeader, addOrder]);
 
   const [selected, setSelected] = useState([]);
-  const [adminOpen, setAdminOpen] = useState(false);
+  const [myOrderId, setMyOrderId] = useState(null);
 
-  const submitOrder = () => {
+  const submitOrder = (customerName) => {
     if (!selected.length) return;
-    addOrder(selected, false);
+    const id = addOrder(selected, false, customerName);
+    setMyOrderId(id);
     setSelected([]);
   };
 
@@ -169,7 +165,7 @@ export function useKitchenChaos() {
   // --- eventos caos: los dispara quien haga clic; el resultado se publica
   // al canal y todas las pestañas lo ven igual, sin necesitar ser líder ---
   const triggerShortage = async () => {
-    pushChaosLog("🔥 Falta un ingrediente clave en cocina");
+    await pushChaosLog("Escasez de ingredientes: inventario crítico reducido.");
     const activeOrders = ordersRef.current.filter((o) => o.stage !== "delivered").slice(0, 2);
     if (activeOrders.length) {
       await send({ content: { kind: "chaos_mark", orderIds: activeOrders.map((o) => o.id) } });
@@ -179,10 +175,11 @@ export function useKitchenChaos() {
       "Se acaba de terminar un ingrediente clave y hay que improvisar sin detener la cocina."
     );
     await setAgentStatus("chef", thought, "ok");
+    await pushChaosLog(thought, "chef");
   };
 
   const triggerRush = async () => {
-    pushChaosLog("📈 Pico repentino de pedidos");
+    await pushChaosLog("Pico de demanda: 3 pedidos urgentes inyectados.");
     for (let i = 0; i < 3; i++) addOrder(randomOrderItems(), true);
     const activeOrders = ordersRef.current.filter((o) => o.stage !== "delivered");
     if (activeOrders.length) {
@@ -193,23 +190,7 @@ export function useKitchenChaos() {
       "Llegó una ola grande de pedidos al mismo tiempo y hay que reorganizar las prioridades."
     );
     await setAgentStatus("gerente", thought, "ok");
-  };
-
-  const triggerAgentFailure = async (role) => {
-    const label = AGENT_META[role]?.label || role;
-    await pushChaosLog(`⚠ ${label} dejó de responder`);
-    await setAgentStatus(role, "…", "down");
-    await setAgentStatus("respaldo", `Tomando el control de ${label}.`, "active");
-
-    // Nota: este timeout vive en la pestaña que hizo clic. Si esa pestaña
-    // se cierra antes de los 12s, el estado "down" queda hasta que alguien
-    // dispare otro evento — aceptable para una demo de hackathon, pero es
-    // el primer punto a robustecer si esto pasa a producción real.
-    setTimeout(async () => {
-      await setAgentStatus(role, "De vuelta en línea, retomando el puesto.", "ok");
-      await setAgentStatus("respaldo", "", "idle");
-      await pushChaosLog(`✅ ${label} volvió a responder`);
-    }, 12000);
+    await pushChaosLog(thought, "gerente");
   };
 
   const activeCount = orders.filter((o) => o.stage !== "delivered").length;
@@ -228,15 +209,13 @@ export function useKitchenChaos() {
     agents,
     chaosLog,
     selected,
-    adminOpen,
-    setAdminOpen,
+    myOrderId,
     viewers,
     now,
     toggleItem,
     submitOrder,
     triggerShortage,
     triggerRush,
-    triggerAgentFailure,
     activeCount,
     deliveredCount: deliveredOrders.length,
     chaosCount,
