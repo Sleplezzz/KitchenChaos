@@ -4,7 +4,7 @@
 
 **Date:** 2026-08-08
 
-**Status:** Approved for implementation
+**Status:** Pending human review. Revised for TanStack Start SPA mode, Nitro on Vercel, Hono API adapters, Oxc tooling, and mise-managed Node/pnpm.
 
 **Scope:** Hackathon MVP that people can test after the demo
 
@@ -82,6 +82,10 @@ The event model uses a typed chaos event union. A small dispatcher handles the e
 - `ToolLoopAgent` or an autonomous tool loop
 - More than one model gateway in the MVP
 - Express
+- A plain static Vite frontend without TanStack Start
+- Independent Vercel Function files under `api/` for the webhook or health routes
+- A generic host rewrite of all routes to `index.html`
+- ESLint or Prettier
 - Inventory, maps, delivery routes, or ingredient search
 - Chat between humans
 - Ambient orders, fake viewers, and local progression timers
@@ -91,35 +95,98 @@ The event model uses a typed chaos event union. A small dispatcher handles the e
 
 ## 5. Technology baseline
 
-The implementation ignores the current dependency versions in the repository. It uses the latest stable compatible versions at implementation time.
+The implementation ignores the current package dependency versions in the repository. It uses the latest stable compatible versions at implementation time, with the release-candidate exception below.
 
-| Area            | Decision                                                    |
-| --------------- | ----------------------------------------------------------- |
-| Runtime         | Node.js 24 LTS                                              |
-| Package manager | pnpm only                                                   |
-| Language        | TypeScript for all new and migrated code                    |
-| Frontend        | React stable, Vite 8.1, and `@vitejs/plugin-react` stable   |
-| Backend         | Hono in a Vercel Function                                   |
-| Realtime        | Latest stable Portal SDK and Portal HTTP APIs               |
-| AI              | Latest stable Vercel AI SDK Core with AI Gateway by default |
-| Validation      | Latest stable Zod with Standard Schema support              |
-| Tests           | Latest stable Vitest compatible with Vite 8 and Node.js 24  |
+The repository mise configuration remains authoritative for Node.js 24 and pnpm. Package `engines` must match the mise Node major. Workers must not replace, repin, or abandon the user-managed mise configuration.
+
+| Area             | Decision                                                                 |
+| ---------------- | ------------------------------------------------------------------------ |
+| Runtime          | Node.js 24 LTS via repository mise configuration                         |
+| Package manager  | pnpm only, via repository mise configuration                             |
+| Language         | TypeScript for all new and migrated code                                 |
+| App framework    | TanStack Start in client-side SPA mode, with Nitro for server output     |
+| UI library       | React stable and `@vitejs/plugin-react` stable                           |
+| API application  | Hono as a stateless Web `fetch` app                                      |
+| Hosting          | One TanStack Start and Nitro project on Vercel                           |
+| Realtime         | Latest stable Portal SDK and Portal HTTP APIs                            |
+| AI               | Latest stable Vercel AI SDK Core with AI Gateway by default              |
+| Validation       | Latest stable Zod with Standard Schema support                           |
+| Tests            | Latest stable Vitest compatible with the Vite version required by pinned Start and Nitro, and with Node.js 24 |
+| Lint             | `oxlint` as a pinned development dependency                              |
+| Format           | `oxfmt` as a pinned development dependency                               |
 
 The project stores exact resolved versions in `pnpm-lock.yaml`. The project does not keep another package-manager lockfile.
 
-The implementation uses stable releases only. It does not use beta, canary, release-candidate, or experimental package versions.
+### 5.1 Package stability
 
-During setup, pnpm resolves each package from its current stable release. Use an older release only after a verified compatibility failure.
+Use stable releases for all packages except TanStack Start and, when required, its Nitro companion.
+
+TanStack Start is accepted as a release candidate for this project only. Pin the exact TanStack Start version and the exact Start-compatible Nitro companion version at implementation time. That Nitro pin is allowed even when the required companion is not labeled stable. Do not use beta, canary, or experimental releases for other packages.
+
+During setup, pnpm resolves each package from its current approved release. Use an older release only after a verified compatibility failure.
+
+### 5.2 Vite plugin order
+
+Configure Vite plugins in this order:
+
+1. TanStack Start
+2. Nitro
+3. React
+
+Let Nitro control Vercel routing. Do not add a generic rewrite to `index.html`. TanStack Start replaces the plain Vite entry model. Treat a deleted root `index.html` as intentional.
+
+### 5.3 Project commands
 
 Required project commands are:
 
 ```bash
 pnpm dev
 pnpm typecheck
+pnpm lint
+pnpm lint:fix
+pnpm format
+pnpm format:check
 pnpm test
 pnpm test:watch
 pnpm build
 ```
+
+`pnpm typecheck` runs `tsc --noEmit` and remains authoritative for types. Do not enable Oxlint experimental type checking.
+
+### 5.4 Lint and format
+
+Add `oxlint` and `oxfmt` as pinned development dependencies. Do not add ESLint or Prettier.
+
+Use Oxlint native support for React, TypeScript, Vitest, and JSX accessibility.
+
+Commit an Oxlint config with centralized ignore patterns. Commit an Oxfmt config with centralized ignore patterns.
+
+Ignore at least these paths in both tools:
+
+- Generated `src/routeTree.gen.ts`
+- Build output
+- Vercel output
+- Compiled prototype assets under `assets/`
+- Temporary agent reports under `agent/tmp/`
+
+Let Oxfmt ignore lockfiles through its default behavior.
+
+### 5.5 Issue foundation work
+
+Issue #1 foundation work includes all of these items:
+
+- TanStack Start dependencies and SPA mode configuration
+- Nitro Vite configuration and Vercel deploy path
+- TypeScript client and server boundaries
+- The health route red-green test cycle
+- `createApp(deps)` for the Hono application
+- Exact Start server routes for `/api/health` and `/api/portal/webhook`
+- The Start route shell for join and role views
+- Oxlint, Oxfmt, and committed ignore rules
+- Removal of obsolete plain-Vite assets and entry assumptions
+- Full verification commands
+- Preservation of the user-managed repository mise configuration for Node 24 and pnpm
+- A human checkpoint after the verified micro-phase is committed, pushed, and documented on GitHub
 
 ## 6. System architecture
 
@@ -128,25 +195,30 @@ flowchart LR
     C[Customer browser]
     K[Cook browser]
     M[Manager browser]
+    S[TanStack Start SPA shell]
+    R[Start server routes]
     P[Portal room channel]
     W[Portal webhook]
     H[Hono API]
     A[Vercel AI Gateway]
 
-    C <--> P
-    K <--> P
-    M <--> P
+    C --> S
+    K --> S
+    M --> S
+    S <--> P
     P --> W
-    W --> H
+    W --> R
+    R --> H
     H --> P
     H --> A
     A --> H
 ```
 
-All browsers join one Portal channel. The channel ID is `kitchen-<ROOM_CODE>`.
+All browsers load the TanStack Start SPA shell and join one Portal channel. The channel ID is `kitchen-<ROOM_CODE>`.
 
 Human actions publish persistent domain events.
-Portal sends those events to the Hono webhook.
+Portal sends those events to the Start webhook route.
+That route forwards the original request to Hono.
 Hono rebuilds the room projection and calls the correct AI agent.
 Hono then publishes the agent event to the same channel.
 
@@ -154,12 +226,35 @@ The frontend and Hono import the same pure reducer. This prevents separate defin
 
 AI SDK Core is the application-facing model API. AI Gateway is the default model backend. This choice does not require Vercel hosting.
 
-One Vercel project hosts the Vite frontend and these API routes:
-
-- `POST /api/portal/webhook`
-- `GET /api/health`
+One Vercel project hosts the TanStack Start SPA client and the Nitro server output. Hono is the API application inside that project. It is not a separate Vercel Function tree under `api/`.
 
 The static menu can live in source code. Orders, stations, agent actions, and chaos events must live in Portal.
+
+### 6.1 External HTTP routes
+
+Keep all external HTTP routes under `/api`. The MVP exposes only these routes:
+
+- `GET /api/health`
+- `POST /api/portal/webhook`
+
+Define exact TanStack Start server routes for both paths. Each route forwards the original unread Web `Request` to `honoApp.fetch(request)` and returns the Hono `Response`.
+
+Do not parse, clone, rebuild, or log the webhook body in the Start adapter. The Hono application owns signature verification, body parsing, and error responses.
+
+Nitro owns host routing for static assets, server routes, and the SPA shell. Do not add a Router-style catch-all rewrite to `index.html`. A catch-all that wins over `/api/*` breaks webhook delivery.
+
+### 6.2 Client routes
+
+Use TanStack file routes for the browser UI:
+
+| Route                      | Purpose                                      |
+| -------------------------- | -------------------------------------------- |
+| `/`                        | Join screen for name, room code, and role    |
+| `/room/$roomId/$role`      | Role view for Customer, Cook, or Manager     |
+
+The role segment selects the visible interface. Portal remains the only kitchen state source. Route loaders must not hold kitchen domain state or server secrets.
+
+Keep the root route free of secrets and user-specific data. The SPA shell is public static HTML.
 
 ## 7. Portal room model
 
@@ -352,6 +447,18 @@ The temporary provider comparison is in `agent/tmp/ai-provider-portability.md`. 
 
 ## 12. Webhook flow and error handling
 
+### 12.1 Request path
+
+The external request path is:
+
+1. Portal posts to `POST /api/portal/webhook`.
+2. The TanStack Start server route receives the Web `Request`.
+3. The route calls `honoApp.fetch(request)` with that original unread request.
+4. Hono returns a Web `Response`.
+5. The Start route returns that response without body transformation.
+
+### 12.2 Hono handling order
+
 Hono handles a Portal webhook in this order:
 
 1. Read the raw request body.
@@ -380,13 +487,15 @@ Error rules:
 
 ## 13. Credentials
 
-| Variable                      | Location       | Purpose                                      |
-| ----------------------------- | -------------- | -------------------------------------------- |
-| `VITE_PORTAL_PUBLISHABLE_KEY` | Browser bundle | Starts the Portal browser client             |
-| `PORTAL_SECRET`               | Hono only      | Mints tokens and publishes server events     |
-| `PORTAL_WEBHOOK_SECRET`       | Hono only      | Verifies Portal webhook signatures           |
-| `AI_GATEWAY_API_KEY`          | Hono only      | Calls the model through AI Gateway           |
-| `AI_MODEL`                    | Hono only      | Selects a fast model available in AI Gateway |
+| Variable                      | Location              | Purpose                                      |
+| ----------------------------- | --------------------- | -------------------------------------------- |
+| `VITE_PORTAL_PUBLISHABLE_KEY` | Browser bundle        | Starts the Portal browser client             |
+| `PORTAL_SECRET`               | Server only           | Mints tokens and publishes server events     |
+| `PORTAL_WEBHOOK_SECRET`       | Server only           | Verifies Portal webhook signatures           |
+| `AI_GATEWAY_API_KEY`          | Server only           | Calls the model through AI Gateway           |
+| `AI_MODEL`                    | Server only           | Selects a fast model available in AI Gateway |
+
+Keep server secrets unprefixed. Only browser-safe values may use the `VITE_` prefix.
 
 The publishable key and secret key are separate scoped credentials. They are not an asymmetric cryptographic key pair.
 
@@ -449,6 +558,7 @@ Test the shared reducer for:
 
 Test Hono with `app.request()` for:
 
+- Health route success
 - Webhook signature acceptance and rejection
 - Human event filtering
 - Agent selection
@@ -458,13 +568,17 @@ Test Hono with `app.request()` for:
 - Stable `actionKey` generation
 - Portal publish failures and retry responses
 
-Inject Portal and AI clients into the Hono application. Use Vitest fakes for these interfaces. Do not use live Portal or model calls in automated tests.
+Inject Portal and AI clients into the Hono application through `createApp(deps)`. Use Vitest fakes for these interfaces. Do not use live Portal or model calls in automated tests.
+
+Add one small Start-to-Hono adapter test. That test proves the adapter forwards the original request and returns the Hono response without reading or rebuilding the body.
 
 Do not add `jsdom`, `happy-dom`, React Testing Library, MSW, or Playwright now. Add one only when a real test requires its behavior.
 
-### 15.2 Manual realtime test
+### 15.2 Manual deployment checks
 
-Automated unit and route tests cannot prove Portal synchronization. Run this test with three browsers or two physical devices before the demo:
+Automated unit and route tests cannot prove Portal synchronization or host routing. Run these checks before the demo:
+
+**Realtime multi-browser test**
 
 1. Join the same room as Customer, Cook, and Manager.
 2. Confirm that presence shows all three people and roles.
@@ -476,6 +590,12 @@ Automated unit and route tests cannot prove Portal synchronization. Run this tes
 8. Confirm that Delivery completes it everywhere.
 9. Reload one browser and confirm that history restores the same state.
 10. Disconnect and reconnect one browser and confirm that no duplicate action changes the projection.
+
+**Host routing checks**
+
+1. Open a deep client URL such as `/room/<roomId>/cook` and confirm the SPA shell loads.
+2. Send an invalid webhook to `POST /api/portal/webhook` and confirm the handler returns a non-HTML error response, not the SPA shell.
+3. Call `GET /api/health` and confirm a JSON health response.
 
 Target agent reaction time is eight seconds or less, including a fallback.
 
@@ -498,7 +618,7 @@ The presentation should take no more than 90 seconds. The model fallback path mu
 
 The MVP is accepted when all these statements are true:
 
-- Three people can join one room with different roles.
+- Three people can join one room with different roles through the Start SPA routes.
 - Presence shows each connected person and role.
 - A Customer can create several active orders.
 - Portal stores every domain event needed to rebuild the room.
@@ -512,7 +632,10 @@ The MVP is accepted when all these statements are true:
 - Duplicate webhook delivery does not change the final projection twice.
 - Reloading a browser restores the room from Portal.
 - The full demo works when the model uses deterministic fallbacks.
-- `pnpm typecheck`, `pnpm test`, and `pnpm build` finish successfully.
+- External API traffic uses `/api/health` and `/api/portal/webhook` only.
+- An invalid webhook returns a handler error response, not the SPA shell HTML.
+- A deep client route loads through Nitro routing without a manual `index.html` rewrite.
+- `pnpm typecheck`, `pnpm lint`, `pnpm format:check`, `pnpm test`, and `pnpm build` finish successfully.
 
 ## 18. Deferred decision: Portal Extensions and snapshots
 
@@ -539,13 +662,23 @@ Use these files if the team must reconsider the decision:
 The testing worker report remains at `agent/tmp/testing-stack-research.md`.
 The coordinator validated its sources and did not follow its `node:test` recommendation.
 That recommendation depended on the old repository stack.
-The approved design uses Vite 8 and the latest stable compatible Vitest.
+The approved design uses Vite-compatible tooling with Vitest on Node.
 
 Files under `agent/tmp` are temporary and can disappear. This spec contains the final decision and remains the authoritative source.
 
 ## 19. Implementation guardrails
 
-- Do not preserve an old dependency only because it exists in the repository.
+- Do not preserve an old package dependency only because it exists in the repository.
+- Do not replace, repin, or abandon the user-managed repository mise configuration for Node 24 and pnpm.
+- Do not hard-pin Vite independently of the Vite version required by pinned TanStack Start and Nitro.
+- Do not keep plain-Vite entry assumptions after TanStack Start owns the client shell.
+- Do not add independent Vercel Function files for `/api/health` or `/api/portal/webhook`.
+- Do not add a generic rewrite to `index.html`. Let Nitro own host routing.
+- Do not parse, clone, rebuild, or log the webhook body in the Start adapter.
+- Do not add ESLint or Prettier. Use Oxlint and Oxfmt only.
+- Do not enable Oxlint experimental type checking. Keep `tsc --noEmit` authoritative.
+- Do not put server secrets behind a `VITE_` prefix.
+- Do not put kitchen domain state or secrets in root route loaders.
 - Do not add an external state store unless Portal history fails the acceptance test.
 - Do not add model memory unless an approved product behavior needs it.
 - Do not let AI output bypass schema validation or reducer rules.
@@ -554,3 +687,4 @@ Files under `agent/tmp` are temporary and can disappear. This spec contains the 
 - Do not add a second model gateway before a verified product need exists.
 - Do not replace manual multi-device verification with mocked realtime tests.
 - Keep shared domain files small and independent from React, Hono, Portal, and the model.
+- Treat the human checkpoint as post-commit: after the verified micro-phase is committed, pushed, and documented on GitHub.
