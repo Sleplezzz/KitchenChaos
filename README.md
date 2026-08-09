@@ -1,18 +1,20 @@
 # Kitchen Chaos — Restaurante Autónomo con IA 🍳🤖
 
-**Kitchen Chaos** es una aplicación interactiva que simula la operación en tiempo real de un restaurante gestionado por agentes de Inteligencia Artificial (Chef, Gerente, Repartidor y Respaldo) impulsados por los modelos de Anthropic (Claude), sincronizada en tiempo real entre todos los dispositivos conectados mediante **Portal**.
+**Kitchen Chaos** es un MVP colaborativo en tiempo real donde tres roles humanos (Cliente, Cocinero, Gerente) y tres agentes de IA (Coordinador, Respaldo, Delivery) interactúan sobre un estado compartido de cocina.
 
 ---
 
 ## 🔌 Cómo funciona el tiempo real (Portal)
 
-El estado de la cocina (pedidos, etapas, pensamientos de los agentes, eventos caos) **no vive en `useState` local** — vive en un único canal de Portal (`kitchen-global`). Cada pestaña/dispositivo que abre la app:
+El estado de la cocina **no vive en el estado local del navegador**. Portal es la única fuente de verdad.
 
-1. Se conecta al canal en modo anónimo (sin necesidad de login).
-2. Reconstruye el estado leyendo el historial de mensajes del canal (patrón *event sourcing* — ver `src/lib/kitchenReducer.js`).
-3. Ve, en vivo, cada mensaje nuevo que publique cualquier otro cliente conectado.
+1. Los clientes se conectan a un canal de Portal (`kitchen-<ROOM_CODE>`).
+2. Las acciones humanas publican eventos de dominio persistentes en el canal.
+3. Portal envía esos eventos a un webhook de nuestro backend (Hono).
+4. El backend reconstruye la proyección de la sala, invoca al agente de IA correspondiente, y publica el resultado de vuelta en el canal.
+5. Todos los navegadores aplican el mismo reducer puro para reflejar los cambios instantáneamente.
 
-Para evitar que cada pestaña abierta corra su propio "reloj" de cocina (lo que duplicaría pedidos y llamadas a la IA), se usa la **presencia** del canal para elegir una única pestaña "líder" — de forma determinista, la de menor id de sesión entre los participantes conectados — que es la única que hace avanzar los pedidos automáticamente y genera pedidos de fondo. Cualquier pestaña puede seguir haciendo pedidos y disparando eventos caos sin ser la líder.
+No hay bases de datos externas, memorias a largo plazo, ni temporizadores locales.
 
 ---
 
