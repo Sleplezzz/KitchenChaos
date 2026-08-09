@@ -10,6 +10,7 @@ The website remains the authoritative source. These copies support offline resea
 | `client-setup.md`    | https://docs.useportal.co/core/client-setup               |
 | `channels.md`        | https://docs.useportal.co/core/channels                   |
 | `tokens-and-auth.md` | https://docs.useportal.co/core/tokens-and-auth            |
+| `provider.md`        | https://docs.useportal.co/react/provider                   |
 | `useChannel.md`      | https://docs.useportal.co/react/use-channel               |
 | `extensions.md`      | https://docs.useportal.co/guides/extensions               |
 | `webhooks.md`        | https://docs.useportal.co/guides/webhooks                 |

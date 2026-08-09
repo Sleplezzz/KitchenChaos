@@ -4,7 +4,7 @@
 
 **Date:** 2026-08-08
 
-**Status:** Ready for user review
+**Status:** Approved for implementation
 
 **Scope:** Hackathon MVP that people can test after the demo
 
@@ -80,6 +80,7 @@ The event model uses a typed chaos event union. A small dispatcher handles the e
 - Portal Extensions and Extension snapshots
 - LangChain, LangGraph, AWS Strands, or another agent framework
 - `ToolLoopAgent` or an autonomous tool loop
+- More than one model gateway in the MVP
 - Express
 - Inventory, maps, delivery routes, or ingredient search
 - Chat between humans
@@ -92,17 +93,17 @@ The event model uses a typed chaos event union. A small dispatcher handles the e
 
 The implementation ignores the current dependency versions in the repository. It uses the latest stable compatible versions at implementation time.
 
-| Area            | Decision                                                   |
-| --------------- | ---------------------------------------------------------- |
-| Runtime         | Node.js 24 LTS                                             |
-| Package manager | pnpm only                                                  |
-| Language        | TypeScript for all new and migrated code                   |
-| Frontend        | React stable, Vite 8.1, and `@vitejs/plugin-react` stable  |
-| Backend         | Hono in a Vercel Function                                  |
-| Realtime        | Latest stable Portal SDK and Portal HTTP APIs              |
-| AI              | Latest stable Vercel AI SDK Core through AI Gateway        |
-| Validation      | Latest stable Zod with Standard Schema support             |
-| Tests           | Latest stable Vitest compatible with Vite 8 and Node.js 24 |
+| Area            | Decision                                                    |
+| --------------- | ----------------------------------------------------------- |
+| Runtime         | Node.js 24 LTS                                              |
+| Package manager | pnpm only                                                   |
+| Language        | TypeScript for all new and migrated code                    |
+| Frontend        | React stable, Vite 8.1, and `@vitejs/plugin-react` stable   |
+| Backend         | Hono in a Vercel Function                                   |
+| Realtime        | Latest stable Portal SDK and Portal HTTP APIs               |
+| AI              | Latest stable Vercel AI SDK Core with AI Gateway by default |
+| Validation      | Latest stable Zod with Standard Schema support              |
+| Tests           | Latest stable Vitest compatible with Vite 8 and Node.js 24  |
 
 The project stores exact resolved versions in `pnpm-lock.yaml`. The project does not keep another package-manager lockfile.
 
@@ -150,6 +151,8 @@ Hono rebuilds the room projection and calls the correct AI agent.
 Hono then publishes the agent event to the same channel.
 
 The frontend and Hono import the same pure reducer. This prevents separate definitions of kitchen state.
+
+AI SDK Core is the application-facing model API. AI Gateway is the default model backend. This choice does not require Vercel hosting.
 
 One Vercel project hosts the Vite frontend and these API routes:
 
@@ -231,11 +234,11 @@ The client creates `orderId` with a UUID. The UI derives a short display label f
 
 ### 8.3 Agent events
 
-| Event              | Author      | Required payload                                               |
-| ------------------ | ----------- | -------------------------------------------------------------- |
-| `order.assigned`   | Coordinator | `orderId`, `station`, `priorityScore`, `thought`               |
-| `order.reassigned` | Backup      | `orderId`, `station: "reserve"`, `priorityScore: 3`, `thought` |
-| `order.delivered`  | Delivery    | `orderId`, `thought`                                           |
+| Event              | Author      | Required payload                                        |
+| ------------------ | ----------- | ------------------------------------------------------- |
+| `order.assigned`   | Coordinator | `orderId`, `station`, and `priorityScore`               |
+| `order.reassigned` | Backup      | `orderId`, `station: "reserve"`, and `priorityScore: 3` |
+| `order.delivered`  | Delivery    | `orderId`                                               |
 
 The Backup agent publishes one `order.reassigned` event for each affected order. This keeps each action small and independently idempotent.
 
@@ -334,6 +337,18 @@ Each agent has a fixed fallback action. A model timeout, provider error, missing
 - Delivery fallback: deliver the ready order.
 
 The model improves the visible explanation and the Coordinator decision. It must not control whether the demo can finish.
+
+### 11.5 Model provider boundary
+
+The MVP uses AI Gateway through AI SDK Core. The server keeps model selection in one provider module. Agents receive an AI SDK language model and do not import Gateway-specific code.
+
+Use `AI_GATEWAY_API_KEY` for authentication and `AI_MODEL` for the model identifier. A different Gateway model requires only an `AI_MODEL` change.
+
+OpenRouter remains a later alternative. That change requires its provider adapter, API key, and possibly a different model identifier. It must not require changes to event contracts, prompts, agents, or the webhook flow.
+
+Do not implement AI Gateway and OpenRouter together in the MVP. Two active providers add configuration and failure paths without improving the demo.
+
+The temporary provider comparison is in `agent/tmp/ai-provider-portability.md`. This subsection remains authoritative if that temporary file disappears.
 
 ## 12. Webhook flow and error handling
 
@@ -536,5 +551,6 @@ Files under `agent/tmp` are temporary and can disappear. This spec contains the 
 - Do not let AI output bypass schema validation or reducer rules.
 - Do not show private chain-of-thought.
 - Do not add a second chaos event before the complete demo path works.
+- Do not add a second model gateway before a verified product need exists.
 - Do not replace manual multi-device verification with mocked realtime tests.
 - Keep shared domain files small and independent from React, Hono, Portal, and the model.
