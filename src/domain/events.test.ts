@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { buildActionKey, kitchenEventSchema } from "./events";
+import {
+  buildOrderAssigned,
+  buildOrderCreated,
+  buildOrderDelivered,
+  buildOrderReady,
+  buildOrderReassigned,
+  buildPortalEnvelope,
+  buildStationFailed,
+} from "./fixtures";
 
 const ORDER_ID = "550e8400-e29b-41d4-a716-446655440000";
 const ROOM_ID = "kitchen-demo";
@@ -267,5 +276,68 @@ describe("buildActionKey stability", () => {
         orderId: "550e8400-e29b-41d4-a716-446655440000",
       }),
     ).toBe("m_42:backup:order.reassigned:550e8400-e29b-41d4-a716-446655440000");
+  });
+});
+
+describe("domain fixture builders", () => {
+  it("builds a valid order.created event", () => {
+    const event = buildOrderCreated();
+    expect(kitchenEventSchema.safeParse(event).success).toBe(true);
+    expect(event.type).toBe("order.created");
+  });
+
+  it("builds a valid order.ready event", () => {
+    const event = buildOrderReady();
+    expect(kitchenEventSchema.safeParse(event).success).toBe(true);
+    expect(event.type).toBe("order.ready");
+  });
+
+  it("builds a valid station.failed event", () => {
+    const event = buildStationFailed();
+    expect(kitchenEventSchema.safeParse(event).success).toBe(true);
+    expect(event.type).toBe("station.failed");
+  });
+
+  it("builds a valid order.assigned event", () => {
+    const event = buildOrderAssigned();
+    expect(kitchenEventSchema.safeParse(event).success).toBe(true);
+    expect(event.type).toBe("order.assigned");
+  });
+
+  it("builds a valid order.reassigned event", () => {
+    const event = buildOrderReassigned();
+    expect(kitchenEventSchema.safeParse(event).success).toBe(true);
+    expect(event.type).toBe("order.reassigned");
+  });
+
+  it("builds a valid order.delivered event", () => {
+    const event = buildOrderDelivered();
+    expect(kitchenEventSchema.safeParse(event).success).toBe(true);
+    expect(event.type).toBe("order.delivered");
+  });
+
+  it("applies order identity overrides", () => {
+    const orderId = "550e8400-e29b-41d4-a716-446655440099";
+    const event = buildOrderCreated({ orderId });
+    expect(event.type).toBe("order.created");
+    if (event.type === "order.created") {
+      expect(event.payload.orderId).toBe(orderId);
+    }
+    expect(kitchenEventSchema.safeParse(event).success).toBe(true);
+  });
+
+  it("builds a Portal envelope with the required fields", () => {
+    const content = buildOrderCreated();
+    const envelope = buildPortalEnvelope({ content, seq: 7 });
+
+    expect(envelope).toEqual({
+      id: expect.any(String),
+      seq: 7,
+      timestamp: expect.any(Number),
+      retracted: false,
+      ephemeral: false,
+      content,
+    });
+    expect(kitchenEventSchema.safeParse(envelope.content).success).toBe(true);
   });
 });
