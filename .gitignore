@@ -1,2 +1,20 @@
-# ai
-agent/tmp
+# dependencies
+node_modules/
+
+# build / host output
+dist/
+.output/
+.vercel/
+.nitro/
+
+# env
+.env
+.env.*
+!.env.example
+
+# agent scratch
+agent/tmp/
+
+# logs / OS noise
+*.log
+.DS_Store
