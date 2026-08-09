@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "**/routeTree.gen.ts",
+    "dist/**",
+    ".output/**",
+    ".nitro/**",
+    ".vercel/**",
+    "assets/**",
+    "agent/tmp/**",
+    "agent/docs/**",
+    "docs/**",
+    ".agents/**"
+  ]
+}
