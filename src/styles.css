@@ -160,3 +160,173 @@ input {
   font-size: 11px;
   color: var(--alert);
 }
+
+/* Kitchen shell + shared header */
+
+.kitchen-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shell-header-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.shell-header-room {
+  min-width: 5rem;
+}
+
+.shell-header-status {
+  min-width: 6.5rem;
+}
+
+.shell-header-presence {
+  flex: 1 1 12rem;
+}
+
+.shell-header-agents {
+  flex: 1 1 16rem;
+}
+
+.shell-header-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.shell-header-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ticket);
+}
+
+.shell-header-muted {
+  color: var(--ink-dim);
+  font-weight: 400;
+}
+
+.shell-header-status .shell-header-value[data-status="ready"] {
+  color: var(--service);
+}
+
+.shell-header-status .shell-header-value[data-status="blocked"] {
+  color: var(--alert);
+}
+
+.shell-header-status .shell-header-value[data-status="degraded"],
+.shell-header-status .shell-header-value[data-status="degraded-http"] {
+  color: var(--brass);
+}
+
+.shell-presence-list,
+.shell-agent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shell-presence-person {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+}
+
+.shell-presence-person.is-self .shell-presence-name {
+  color: var(--flame);
+  font-weight: 600;
+}
+
+.shell-presence-name {
+  color: var(--ink);
+}
+
+.shell-presence-role {
+  color: var(--ink-dim);
+  text-transform: capitalize;
+  font-size: 11px;
+}
+
+.shell-agent-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+}
+
+.shell-agent-role {
+  flex: 0 0 auto;
+  color: var(--brass);
+  text-transform: capitalize;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.shell-agent-sentence {
+  color: var(--ink);
+  min-width: 0;
+}
+
+.kitchen-role-body {
+  flex: 1;
+  padding: 24px 16px;
+}
+
+.kitchen-role-placeholder {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+
+.room-invalid {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.room-invalid-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ticket);
+}
+
+.room-invalid-body {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+
+.room-invalid-link {
+  color: var(--service);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.room-invalid-link:hover {
+  text-decoration: underline;
+}
