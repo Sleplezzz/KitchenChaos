@@ -217,6 +217,44 @@ describe("kitchenEventSchema rejection", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("rejects order.created from a non-customer author", () => {
+    const result = kitchenEventSchema.safeParse({
+      ...baseHuman,
+      type: "order.created",
+      actor: { role: "cook", id: "cook-1" },
+      payload: {
+        orderId: ORDER_ID,
+        customerId: "cust-1",
+        customerName: "Ada",
+        items: [{ menuItemId: "smash-burger", quantity: 1 }],
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects order.ready from a non-cook author", () => {
+    const result = kitchenEventSchema.safeParse({
+      ...baseHuman,
+      type: "order.ready",
+      actor: { role: "customer", id: "cust-1" },
+      payload: { orderId: ORDER_ID },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects station.failed from a non-manager author", () => {
+    const result = kitchenEventSchema.safeParse({
+      ...baseHuman,
+      type: "station.failed",
+      actor: { role: "cook", id: "cook-1" },
+      payload: { station: "principal" },
+    });
+
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("buildActionKey stability", () => {
