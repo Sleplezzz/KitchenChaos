@@ -1,5 +1,14 @@
 import type { KitchenProjection, Order } from "./projection";
 
+/** Received orders, earlier createdSeq first, for Cook's read-only Incoming list. */
+export function selectCookIncomingOrders(
+  state: KitchenProjection,
+): Order[] {
+  return Object.values(state.orders)
+    .filter((order) => order.stage === "received")
+    .sort((a, b) => a.createdSeq - b.createdSeq);
+}
+
 /** Cooking orders, higher priority first, then earlier createdSeq. */
 export function selectCookQueue(state: KitchenProjection): Order[] {
   return Object.values(state.orders)

@@ -14,5 +14,5 @@
     "moduleDetection": "force",
     "types": ["node"]
   },
-  "include": ["src", "server", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src", "server", "vite.config.ts", "vitest.config.ts", "portal.config.ts"]
 }
