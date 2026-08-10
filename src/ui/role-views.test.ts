@@ -192,6 +192,26 @@ describe("groupCookQueueByStation", () => {
     expect(groups.suggestedNextId).toBeNull();
     expect(groups.readyEligibleIds).toEqual([]);
   });
+
+  it("keeps received orders out of readyEligibleIds", () => {
+    const received = makeOrder({
+      id: crypto.randomUUID(),
+      createdSeq: 1,
+      stage: "received",
+    });
+    const cooking = makeOrder({
+      id: crypto.randomUUID(),
+      createdSeq: 2,
+      stage: "cooking",
+      station: "principal",
+      priorityScore: 2,
+    });
+
+    const groups = groupCookQueueByStation(withOrders([received, cooking]));
+
+    expect(groups.readyEligibleIds).toEqual([cooking.id]);
+    expect(groups.readyEligibleIds).not.toContain(received.id);
+  });
 });
 
 describe("selectManagerBoard", () => {

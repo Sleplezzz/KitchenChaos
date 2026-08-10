@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ChannelStatus } from "@portalsdk/core";
 import { MENU } from "../domain/menu";
 import type { KitchenProjection, Order } from "../domain/projection";
+import { selectCookIncomingOrders } from "../domain/selectors";
 import { formatPriority, groupCookQueueByStation } from "./role-views";
 
 export type CookViewProps = {
@@ -115,6 +116,7 @@ export function CookView({
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const incomingOrders = selectCookIncomingOrders(projection);
   const groups = groupCookQueueByStation(projection);
   const canAct = status === "ready" && Boolean(meId);
 
@@ -145,6 +147,30 @@ export function CookView({
           {error}
         </p>
       ) : null}
+
+      <section className="station-group" aria-label="Incoming orders">
+        <h3 className="role-section-title">Incoming orders</h3>
+        {incomingOrders.length === 0 ? (
+          <p className="role-empty">No incoming orders.</p>
+        ) : (
+          <ul className="ticket-list">
+            {incomingOrders.map((order) => (
+              <li key={order.id} className="ticket">
+                <div className="ticket-header">
+                  <span className="ticket-id">{order.id.slice(0, 8)}</span>
+                </div>
+                <ul className="ticket-items">
+                  {order.items.map((line) => (
+                    <li key={line.menuItemId}>
+                      {menuItemName(line.menuItemId)} × {line.quantity}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="cook-stations">
         <StationGroup
